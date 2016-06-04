@@ -20,7 +20,9 @@ namespace CrazyFrog
     public sealed class AudioMonitor
     {
         private const int LED_PIN = 5;
-        private GpioPin pin;
+        private const int PV_PIN = 26;
+        private GpioPin ledPin;
+        private GpioPin pvPin;
         private MCP3008 _adc = new MCP3008();
         private bool isConnected = false;
         private ThreadPoolTimer timer;
@@ -28,6 +30,9 @@ namespace CrazyFrog
         private GpioPinValue LEDOnValue = GpioPinValue.High;
         private bool AudioPlaying = false;
         private MediaEngine mediaEngine;
+        private bool PVTriggered = false;
+        private int PVTriggerThreshold = 1000;
+
 
         public string AudioFileUrl { get; set; }
 
@@ -35,9 +40,13 @@ namespace CrazyFrog
 
         public int TriggerLevel { get; set; } = 70;
 
+        public bool EnablePV { get; set; } = false;
+        
         private async void Timer_Tick(ThreadPoolTimer timer)
         {
             timer.Cancel();
+
+            await ReadPV();
 
             await ReactToAudio();
 
@@ -48,32 +57,50 @@ namespace CrazyFrog
         {
             if (state == MediaState.Ended || state == MediaState.Stopped || state == MediaState.Error)
             {
+                TurnOffLED();
                 AudioPlaying = false;
             }
             else
             {
+                TurnOnLED();
                 AudioPlaying = true;
             }
         }
 
-        private async Task ReactToAudio()
-        {
-            if (!AudioPlaying && ShouldReactToAudio)
+        private async Task ReadPV() {
+            if (!EnablePV)
+                PVTriggered = false;
+            else
             {
-                int volume = await _adc.SampleAsync(1000, 0, 100);
+                pvPin.SetDriveMode(GpioPinDriveMode.Output);
+                pvPin.Write(GpioPinValue.Low);
+                await Task.Delay(100);
+                pvPin.SetDriveMode(GpioPinDriveMode.Input);
+
+                int loopCount = 0;
+                while (pvPin.Read() == GpioPinValue.Low)
+                {
+                    loopCount++;
+                }
+
                 if (Debugger.IsAttached)
                 {
-                    Debug.WriteLine(volume);
+                    Debug.WriteLine(loopCount);
                 }
+                PVTriggered = (loopCount < PVTriggerThreshold);
+            }
+
+        }
+
+        private async Task ReactToAudio()
+        {
+            if (!AudioPlaying && ShouldReactToAudio && !PVTriggered)
+            {
+                int volume = await _adc.SampleAsync(1000, 0, 100);
 
                 if (volume >= TriggerLevel)
                 {
-                    pin.Write(LEDOnValue);
                     PlayAudio();
-                }
-                else
-                {
-                    pin.Write(LEDOffValue);
                 }
             }
         }
@@ -88,13 +115,8 @@ namespace CrazyFrog
             mediaEngine.Play(AudioFileUrl);
         }
 
-        private async void ToggleLED(int blinkLength = 250)
-        {
-            pin.Write(LEDOnValue);
-            await Task.Delay(blinkLength);
-            pin.Write(LEDOffValue);
-            await Task.Delay(blinkLength);
-        }
+        private void TurnOnLED() { if (ledPin.Read() != LEDOnValue) ledPin.Write(LEDOnValue); }
+        private void TurnOffLED() { if (ledPin.Read() != LEDOffValue) ledPin.Write(LEDOffValue); }
 
         public async void Init()
         {
@@ -108,9 +130,12 @@ namespace CrazyFrog
             }
 
             //Initialize the LED Circuits
-            pin = GpioController.GetDefault().OpenPin(LED_PIN);
-            pin.Write(LEDOffValue);
-            pin.SetDriveMode(GpioPinDriveMode.Output);
+            ledPin = GpioController.GetDefault().OpenPin(LED_PIN);
+            TurnOffLED();
+            ledPin.SetDriveMode(GpioPinDriveMode.Output);
+
+            //Initialize the PV Circuit
+            pvPin = GpioController.GetDefault().OpenPin(PV_PIN);
 
             //Initialize the ADC
             isConnected = await _adc.ConnectAsync();

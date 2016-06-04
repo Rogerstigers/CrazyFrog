@@ -28,7 +28,7 @@ namespace CrazyFrog
             var retval = new UpdateRequest()
             {
                 Enabled = audioMonitor.ShouldReactToAudio,
-                EnablePhotoSwitch = true,
+                EnablePhotoSwitch = audioMonitor.EnablePV,
                 UrlToAudio = audioMonitor.AudioFileUrl,
                 Volume = audioMonitor.TriggerLevel
             };
@@ -57,7 +57,7 @@ namespace CrazyFrog
             audioMonitor.AudioFileUrl = request.UrlToAudio;
             audioMonitor.ShouldReactToAudio = request.Enabled;
             audioMonitor.TriggerLevel = request.Volume;
-            //audioMonitor.PhotoSensativeEnabled = request.EnablePhotoSwitch;
+            audioMonitor.EnablePV = request.EnablePhotoSwitch;
 
             return new JsonResponse(body);
         }

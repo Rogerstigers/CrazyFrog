@@ -27,7 +27,7 @@ namespace CrazyFrog
         {
             deferral = taskInstance.GetDeferral();
             audioMonitor = new AudioMonitor();
-            audioMonitor.AudioFileUrl = "http://homeserver/media/PterodactylScream-SoundBible.com-244923111.mp3";
+            audioMonitor.AudioFileUrl = "http://soundbible.com/grab.php?id=1864&type=mp3";
             audioMonitor.Init();
 
             webServer = new HttpServer(80);
