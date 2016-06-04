@@ -1,0 +1,18 @@
+Circuit,From Component,From Location,To Component,To Location
+LDR Switch,RP,3.3V,LDR,In
+LDR Switch,LDR,Out,RP,PIN 26
+LDR Switch,LDR,Out,1 µF Capacitor,In
+LDR Switch,1 µF Capacitor,Out,RP,Gnd
+LED,RP,PIN 5,LED,In
+LED,LED,Out,560? Resistor,In
+LED,560? Resistor,Out,RP,Gnd
+MIC,RP,3.3V,MAX9814,Vdd
+MIC,MAX9814,Gnd,RP,Gnd
+MIC,MAX9814,Out,MCP3008,CH0
+MIC,RP,CE0,MCP3008,SHDN
+MIC,RP,MOSI,MCP3008,Din
+MIC,RP,MISO,MCP3008,Dout
+MIC,RP,SCLCK,MCP3008,CLK
+MIC,RP,Gnd,MCP3008,AGND
+MIC,RP,3.3V,MCP3008,Vref
+MIC,RP,3.3V,MCP3008,Vdd
